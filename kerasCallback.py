@@ -1,14 +1,13 @@
-from sklearn.model_selection import train_test_split
-from keras.models import Sequential
-from keras.layers import Dense, Dropout, Activation
-from keras.optimizers import SGD
-from keras.optimizers import RMSprop
-from keras.utils import np_utils
+import csv
+
 import keras.callbacks
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import csv
+from keras.layers import Dense, Activation
+from keras.models import Sequential
+from keras.optimizers import SGD
+from keras.utils import np_utils
+from sklearn.model_selection import train_test_split
 
 
 class epochendCallBack(keras.callbacks.Callback):
@@ -50,13 +49,13 @@ y_test_soft = y_test[:, 0:4]
 y_test_hard = y_test[:, 4:8]
 
 epochs = 10
-batch_size = 5000
+batch_size = 100
 
 model = Sequential()
-model.add(Dense(output_dim=10, input_dim=2, init='uniform'))
-model.add(Activation('relu'))
-model.add(Dense(output_dim=10, init='uniform'))
-model.add(Activation('relu'))
+model.add(Dense(output_dim=20, input_dim=2, init='uniform'))
+# model.add(Activation('relu'))
+# model.add(Dense(output_dim=10, init='uniform'))
+# model.add(Activation('relu'))
 # model.add(Dense(output_dim=10, init='uniform'))
 # model.add(Activation('relu'))
 model.add(Dense(output_dim=4, init='uniform'))
@@ -64,17 +63,17 @@ model.add(Activation('softmax'))
 
 model.summary()
 
-sgd = SGD(lr=0.1, decay=1e-2, momentum=0.9, nesterov=True)
-model.compile(loss='mean_squared_error',
+sgd = SGD(lr=0.1, decay=1e-4, momentum=0.9, nesterov=True)
+model.compile(loss='categorical_crossentropy',
               optimizer=sgd,
               metrics=['accuracy'])
 
 with open('stats_epochs.csv', 'wb') as f:
-    writer = csv.DictWriter(f, fieldnames=["Epochs", "Train on", "Evaluate on Hard", "Evaluate on Soft"], delimiter=',')
-    writer.writeheader()
-    writer = csv.writer(f, quoting=csv.QUOTE_NONE)
+    # writer = csv.DictWriter(f, fieldnames=["Epochs", "Train on", "Evaluate on Hard", "Evaluate on Soft"], delimiter=',')
+    # writer.writeheader()
+    # writer = csv.writer(f, quoting=csv.QUOTE_NONE)
     paradigm_dict = {}
-    for i in xrange(1):
+    for i in xrange(1,2):
         if i == 0:
             paradigm_dict = {
                 "paradigm": "Hard",
@@ -83,6 +82,17 @@ with open('stats_epochs.csv', 'wb') as f:
                 "paradigm_test1": y_test_hard,
                 "paradigm_test2": y_test_soft
             }
+            test_callback = epochendCallBack(paradigm_dict)
+            hard_fit = model.fit(X_train, paradigm_dict["paradigm_train"],
+                              nb_epoch=epochs,
+                              batch_size=batch_size,
+                              verbose=1,
+                              callbacks=[test_callback])
+
+            train_on_hard_loss = hard_fit.history['loss']
+            train_on_hard_evaluate_on_hard = test_callback.train_on_hard_evaluate_on_hard
+            train_on_hard_evaluate_on_soft = test_callback.train_on_hard_evaluate_on_soft
+
         else:
             paradigm_dict = {
                 "paradigm": "Soft",
@@ -90,22 +100,16 @@ with open('stats_epochs.csv', 'wb') as f:
                 "X test": X_test,
                 "paradigm_test1": y_test_hard,
                 "paradigm_test2": y_test_soft
-            }
+                }
+            test_callback = epochendCallBack(paradigm_dict)
+            soft_fit = model.fit(X_train, paradigm_dict["paradigm_train"],
+                                 nb_epoch=epochs,
+                                 batch_size=batch_size,
+                                 verbose=1,
+                                 callbacks=[test_callback])
 
-        test_callback = epochendCallBack(paradigm_dict)
-        model_fit = model.fit(X_train, paradigm_dict["paradigm_train"],
-                              nb_epoch=epochs,
-                              batch_size=batch_size,
-                              verbose=0,
-                              callbacks=[test_callback])
-
-        if i == 0:
-            train_on_hard_loss = model_fit.history['loss']
-            train_on_hard_evaluate_on_hard = test_callback.train_on_hard_evaluate_on_hard
-            train_on_hard_evaluate_on_soft = test_callback.train_on_hard_evaluate_on_soft
-        else:
-            train_on_soft_loss = model_fit.history['loss']
-            train_on_soft_evaluate_on_hard = test_callback.train_on_soft_evaluate_on_hard
+            train_on_soft_loss = soft_fit.history['loss']
+            # train_on_soft_evaluate_on_hard = test_callback.train_on_soft_evaluate_on_hard
             train_on_soft_evaluate_on_soft = test_callback.train_on_soft_evaluate_on_soft
 
-            #         writer.writerow([e, paradigm, score_on_hard, score_on_soft])
+#         writer.writerow([e, paradigm, score_on_hard, score_on_soft])
