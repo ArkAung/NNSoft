@@ -73,7 +73,7 @@ with open('stats_epochs.csv', 'wb') as f:
     # writer.writeheader()
     # writer = csv.writer(f, quoting=csv.QUOTE_NONE)
     paradigm_dict = {}
-    for i in xrange(1,2):
+    for i in xrange(2):
         if i == 0:
             paradigm_dict = {
                 "paradigm": "Hard",
