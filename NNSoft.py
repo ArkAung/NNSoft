@@ -16,6 +16,10 @@ class epochendCallBack(keras.callbacks.Callback):
         self.train_on_soft_evaluate_on_soft = np.array([])
         self.train_on_hard_evaluate_on_hard = np.array([])
         self.train_on_soft_evaluate_on_hard = np.array([])
+        self.batch_losses = []
+
+    def on_batch_end(self, batch, logs=None):
+        self.batch_losses.append(logs.get('loss'))
 
     def on_epoch_end(self, epoch, logs={}):
         paradigm = self.p_dict["paradigm"]
@@ -53,11 +57,13 @@ y_train_hard = y_train[:, 4:8]
 y_test_soft = y_test[:, 0:4]
 y_test_hard = y_test[:, 4:8]
 
-epochs = 10
-batch_size = 100
+epochs = 100
+batch_size = 160000
 
 model = Sequential()
 model.add(Dense(output_dim=20, input_dim=2, init='uniform'))
+model_initial = model.get_weights()
+
 model.add(Dense(output_dim=4, init='uniform'))
 model.add(Activation('softmax'))
 
@@ -87,6 +93,7 @@ hard_fit = model.fit(X_train, paradigm_dict["paradigm_train"],
                   callbacks=[test_callback])
 
 train_on_hard_loss = hard_fit.history['loss']
+train_on_hard_batch_loss = test_callback.batch_losses
 train_on_hard_evaluate_on_hard = test_callback.train_on_hard_evaluate_on_hard
 train_on_hard_evaluate_on_soft = test_callback.train_on_hard_evaluate_on_soft
 
@@ -108,5 +115,6 @@ soft_fit = model.fit(X_train, paradigm_dict["paradigm_train"],
                      callbacks=[test_callback])
 
 train_on_soft_loss = soft_fit.history['loss']
+train_on_soft_batch_loss = test_callback.batch_losses
 train_on_soft_evaluate_on_hard = test_callback.train_on_soft_evaluate_on_hard
 train_on_soft_evaluate_on_soft = test_callback.train_on_soft_evaluate_on_soft
